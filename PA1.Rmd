@@ -1,0 +1,106 @@
+---
+title: "Project 1"
+author: "Abbas"
+date: "10/18/2020"
+output: html_document
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##Load the data 
+First load the data activity and check the first five rows to 
+have an idea about the data
+```{r}
+activity<-read.csv("activity.csv")
+head(activity)
+```
+
+## Cacualte the total steps
+To cacualte the total step for each day. First need to group by the date as we want for each day then sum all stpes foe each day. set na.rm = TRUE so that the sum function ignors the missing values
+
+```{r}
+data<-activity %>% group_by(date) %>% summarise(StepsSum = sum(steps, na.rm = TRUE))
+```
+
+Histgram of step per day
+```{r}
+b <- aggregate(steps ~ interval, activity, mean)
+plot(b$interval,b$steps,type="l",main="Average number of steps by Interval", xlab="Time Intervals", ylab="Average number of steps")
+```
+
+The interval that has max steps are computed as:
+```{r}
+c<-which.max(b$steps)
+b[c,]$interval
+```
+
+```{r}
+hist(data$StepsSum,main="Histogram steps per day", xlab = "Steps per day")
+```
+Average number of steps per interval 
+
+
+Mean and median of total number of steps
+```{r}
+mean(data$StepsSum)
+
+median(data$StepsSum)
+```
+
+To find number of total NAs in the activity dataset
+```{r}
+sum(is.na(activity))
+```
+
+Now we need to loop throgut all rows in the dataset and when ever we see a NA we will replace it with the average interval
+```{r}
+for (i in 1:nrow(activity)) {
+     if(is.na(activity$steps[i])) {
+         val <- b$steps[which(b$interval == activity$interval[i])]
+         activity$steps[i] <- val 
+     }
+ }
+```
+
+Plot histgram of steps per day for the new dataset 
+```{r}
+data<-activity %>% group_by(date) %>% summarise(StepsSum = sum(steps, na.rm = TRUE))
+hist(data$StepsSum)
+```
+
+Mean and median of total number of steps
+```{r}
+mean(data$StepsSum)
+
+median(data$StepsSum)
+```
+
+Create a function to check is the date of each row is a weekday or weekend
+
+```{r}
+week_day <- function(date_val) {
+    wd <- weekdays(as.Date(date_val, '%Y-%m-%d'))
+    if  (!(wd == 'Saturday' || wd == 'Sunday')) {
+        x <- 'Weekday'
+    } else {
+        x <- 'Weekend'
+    }
+    x
+}
+```
+
+Plot the steps per intervural for weekdays and weekends
+```{r}
+steps <- aggregate(steps ~ interval+dateDay, activity, mean)
+library(ggplot2)
+ plt <- ggplot(steps, aes(interval, steps)) +
+     geom_line(stat = "identity", aes(colour = dateDay)) +
+     theme_gray() +
+     facet_grid(dateDay ~ ., scales="fixed", space="fixed") +
+     labs(x="Interval", y=expression("No of Steps")) +
+     ggtitle("No of steps Per Interval by day type")
+print(plt)
+```
+
